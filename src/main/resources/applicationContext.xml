@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd">
+    <!-- 开启注解扫描,spring只处理service和dao，controller不需要spring处理 -->
+    <context:component-scan base-package="com.echo">
+        <!-- 配置哪些注解不扫描 Controller的注解不扫描 -->
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+    <!-- spring整合mybatis -->
+    <!-- 配置连接池 -->
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="driverClass" value="com.mysql.jdbc.Driver"></property>
+        <property name="jdbcUrl" value="jdbc:mysql://localhost:3306/covid?characterEncoding=UTF-8"></property>
+        <property name="user" value="root"></property>
+        <property name="password" value="s814466057"></property>
+    </bean>
+    <!-- 配置sqlSessionFactory工厂 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <!-- 配置AccountDao接口所在的包 -->
+    <bean id="mapperScanner" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.echo.dao"></property>
+    </bean>
+
+    <!-- 配置Spring框架的声明式事务管理 -->
+    <!-- 配置事务管理器 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <!-- 传入连接池对象 -->
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+
+    <!-- 配置事务通知 -->
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <!-- 对于所有以find打头的方法，设置其为只读 -->
+            <tx:method name="find*" read-only="true"/>
+            <!-- 设置所有方法的隔离级别 -->
+            <tx:method name="*" isolation="DEFAULT" />
+        </tx:attributes>
+    </tx:advice>
+    <!-- 配置AOP增强 -->
+    <aop:config>
+        <!-- 设置AOP增强 -->
+        <!-- 切入点为com.echo.service.impl 包下的以ServiceImpl结尾的类的.* 所有方法，方法参数任意(..) -->
+        <aop:advisor advice-ref="txAdvice" pointcut="execution(* com.echo.service.impl.*ServiceImpl.*(..))"/>
+    </aop:config>
+</beans>
